@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contabilidad Casa - Gastos Compartidos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen pb-12">
+    <div class="max-w-md mx-auto p-4">
+        <!-- Header -->
+        <header class="text-center my-4">
+            <h1 class="text-2xl font-black text-gray-800">🏠 Contabilidad Casa</h1>
+            <p class="text-sm text-gray-500">Calculadora de gastos en pareja</p>
+        </header>
+
+        <!-- Resumen Cards -->
+        <div class="grid grid-cols-2 gap-3 mb-4">
+            <div class="bg-blue-50 border border-blue-100 p-3 rounded-2xl text-center shadow-sm">
+                <p class="text-xs text-blue-600 font-bold uppercase tracking-wider">Te debe ella</p>
+                <p id="totalEllaTeDebe" class="text-xl font-black text-blue-800 mt-1">0.00 €</p>
+            </div>
+            <div class="bg-rose-50 border border-rose-100 p-3 rounded-2xl text-center shadow-sm">
+                <p class="text-xs text-rose-600 font-bold uppercase tracking-wider">Le debes tú</p>
+                <p id="totalLeDebes" class="text-xl font-black text-rose-800 mt-1">0.00 €</p>
+            </div>
+        </div>
+
+        <div id="balanceNetoCard" class="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl text-center mb-6 shadow-sm">
+            <p class="text-xs text-emerald-600 font-bold uppercase tracking-wider">Balance Neto</p>
+            <p id="balanceNeto" class="text-lg font-bold text-emerald-800">¡Estáis a paz y a salvo!</p>
+        </div>
+
+        <!-- Formulario Estilo Calculadora -->
+        <div class="bg-white rounded-3xl shadow-lg p-5 mb-6 border border-gray-100">
+            <h2 class="text-base font-bold text-gray-800 mb-3">➕ Añadir Nuevo Gasto</h2>
+            <form id="expenseForm" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Concepto</label>
+                    <input type="text" id="concepto" placeholder="Ej: Supermercado, luz, cena..." class="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Cantidad (€)</label>
+                    <input type="number" step="0.01" id="importe" required placeholder="0.00" class="w-full px-3 py-3 text-2xl font-black text-gray-800 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-gray-50">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">¿Quién pagó?</label>
+                        <select id="pagadoPor" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white font-medium">
+                            <option value="Yo">Yo</option>
+                            <option value="Mi Mujer">Mi Mujer</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">Tipo de gasto / %</label>
+                        <select id="tipo" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white font-medium">
+                            <option value="50" selected>Mitad (50%)</option>
+                            <option value="100">Íntegro (100% para el otro)</option>
+                            <option value="0">Personal (0% - No se divide)</option>
+                            <option value="10">10% para el otro</option>
+                            <option value="20">20% para el otro</option>
+                            <option value="30">30% para el otro</option>
+                            <option value="40">40% para el otro</option>
+                            <option value="60">60% para el otro</option>
+                            <option value="70">70% para el otro</option>
+                            <option value="80">80% para el otro</option>
+                            <option value="90">90% para el otro</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold py-3 px-4 rounded-xl shadow-md transition duration-150 text-base mt-2">
+                    Añadir Gasto
+                </button>
+            </form>
+        </div>
+
+        <!-- Historial -->
+        <div class="bg-white rounded-3xl shadow-lg p-5 border border-gray-100">
+            <div class="flex justify-between items-center mb-3">
+                <h2 class="text-base font-bold text-gray-800">📋 Historial</h2>
+                <button onclick="limpiarTodo()" class="text-xs text-red-500 font-semibold hover:underline">Borrar todo</button>
+            </div>
+            <div id="listaGastos" class="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                <p class="text-gray-400 text-center text-xs py-4">No hay gastos registrados aún.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let gastos = JSON.parse(localStorage.getItem('contabilidad_casa_app')) || [];
+
+        // Cargar última selección guardada
+        const lastPagadoPor = localStorage.getItem('contabilidad_last_pagadoPor');
+        const lastTipo = localStorage.getItem('contabilidad_last_tipo');
+        if (lastPagadoPor) document.getElementById('pagadoPor').value = lastPagadoPor;
+        if (lastTipo) document.getElementById('tipo').value = lastTipo;
+
+        const form = document.getElementById('expenseForm');
+        const listaGastos = document.getElementById('listaGastos');
+        const totalEllaTeDebeEl = document.getElementById('totalEllaTeDebe');
+        const totalLeDebesEl = document.getElementById('totalLeDebes');
+        const balanceNetoEl = document.getElementById('balanceNeto');
+        const balanceNetoCard = document.getElementById('balanceNetoCard');
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const concepto = document.getElementById('concepto').value.trim() || 'Gasto';
+            const importe = parseFloat(document.getElementById('importe').value);
+            const pagadoPor = document.getElementById('pagadoPor').value;
+            const tipo = document.getElementById('tipo').value; // valor numérico en porcentaje (0 a 100)
+
+            if (isNaN(importe) || importe <= 0) return;
+
+            // Guardar última selección en localStorage
+            localStorage.setItem('contabilidad_last_pagadoPor', pagadoPor);
+            localStorage.setItem('contabilidad_last_tipo', tipo);
+
+            const nuevoGasto = {
+                id: Date.now(),
+                concepto,
+                importe,
+                pagadoPor,
+                tipo: parseFloat(tipo)
+            };
+
+            gastos.unshift(nuevoGasto);
+            guardarYActualizar();
+            form.reset();
+            
+            // Mantener últimos valores seleccionados tras el reset
+            document.getElementById('pagadoPor').value = pagadoPor;
+            document.getElementById('tipo').value = tipo;
+            document.getElementById('importe').focus();
+        });
+
+        function guardarYActualizar() {
+            localStorage.setItem('contabilidad_casa_app', JSON.stringify(gastos));
+            renderizar();
+        }
+
+        function eliminarGasto(id) {
+            gastos = gastos.filter(g => g.id !== id);
+            guardarYActualizar();
+        }
+
+        function limpiarTodo() {
+            if (confirm('¿Seguro que quieres borrar todos los gastos?')) {
+                gastos = [];
+                guardarYActualizar();
+            }
+        }
+
+        function renderizar() {
+            listaGastos.innerHTML = '';
+            let totalEllaDebe = 0;
+            let totalTuDebes = 0;
+
+            if (gastos.length === 0) {
+                listaGastos.innerHTML = '<p class="text-gray-400 text-center text-xs py-4">No hay gastos registrados aún.</p>';
+            } else {
+                gastos.forEach(g => {
+                    let deudaElla = 0;
+                    let deudaTu = 0;
+                    let pct = g.tipo; // porcentaje que debe el otro (0 a 100)
+                    let descTipo = pct === 50 ? 'Mitad (50%)' : (pct === 100 ? 'Íntegro (100%)' : (pct === 0 ? 'Personal (0%)' : `${pct}% para el otro`));
+
+                    let proporcion = pct / 100;
+
+                    if (g.pagadoPor === 'Yo') {
+                        deudaElla = g.importe * proporcion;
+                        totalEllaDebe += deudaElla;
+                    } else { // Pagado por Mi Mujer
+                        deudaTu = g.importe * proporcion;
+                        totalTuDebes += deudaTu;
+                    }
+
+                    const div = document.createElement('div');
+                    div.className = 'flex justify-between items-center p-3 bg-gray-50 rounded-2xl text-xs border border-gray-100';
+                    div.innerHTML = `
+                        <div>
+                            <p class="font-bold text-gray-800 text-sm">${g.concepto} - <span class="text-blue-600">${g.importe.toFixed(2)} €</span></p>
+                            <p class="text-gray-500 mt-0.5">Pagó: <b>${g.pagadoPor}</b> • ${descTipo}</p>
+                        </div>
+                        <button onclick="eliminarGasto(${g.id})" class="text-red-400 hover:text-red-600 font-bold p-2 text-base">×</button>
+                    `;
+                    listaGastos.appendChild(div);
+                });
+            }
+
+            totalEllaTeDebeEl.textContent = totalEllaDebe.toFixed(2) + ' €';
+            totalLeDebesEl.textContent = totalTuDebes.toFixed(2) + ' €';
+
+            const balance = totalEllaDebe - totalTuDebes;
+            if (Math.abs(balance) < 0.01) {
+                balanceNetoEl.textContent = '¡Estáis a paz y a salvo!';
+                balanceNetoCard.className = 'bg-emerald-50 border border-emerald-200 p-3 rounded-2xl text-center mb-6 shadow-sm';
+                balanceNetoEl.className = 'text-base font-bold text-emerald-800';
+            } else if (balance > 0) {
+                balanceNetoEl.textContent = `Te debe: ${balance.toFixed(2)} €`;
+                balanceNetoCard.className = 'bg-blue-50 border border-blue-200 p-3 rounded-2xl text-center mb-6 shadow-sm';
+                balanceNetoEl.className = 'text-base font-bold text-blue-800';
+            } else {
+                balanceNetoEl.textContent = `Le debes: ${Math.abs(balance).toFixed(2)} €`;
+                balanceNetoCard.className = 'bg-rose-50 border border-rose-200 p-3 rounded-2xl text-center mb-6 shadow-sm';
+                balanceNetoEl.className = 'text-base font-bold text-rose-800';
+            }
+        }
+
+        renderizar();
+    </script>
+</body>
+</html>
