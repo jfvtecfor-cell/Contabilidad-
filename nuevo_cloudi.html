@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contabilidad Casa</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; background: #f9fafb; color: #1f2937; padding-bottom: 48px; }
+  .wrap { max-width: 420px; margin: 0 auto; padding: 16px; }
+  header { text-align: center; margin: 16px 0; }
+  h1 { font-size: 24px; font-weight: 900; margin: 0; }
+  .sub { font-size: 14px; color: #6b7280; margin: 4px 0 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .card { border-radius: 16px; padding: 12px; text-align: center; border: 1px solid; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+  .card .lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin: 0; }
+  .card .val { font-size: 20px; font-weight: 900; margin: 4px 0 0; }
+  .blue { background: #eff6ff; border-color: #dbeafe; color: #1e40af; }
+  .rose { background: #fff1f2; border-color: #ffe4e6; color: #9f1239; }
+  .emerald { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; }
+  .sky { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+  .balance { border-radius: 16px; padding: 12px; text-align: center; border: 1px solid; margin-bottom: 24px; }
+  .balance .lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; margin: 0; }
+  .balance .val { font-size: 17px; font-weight: 700; margin: 4px 0 0; }
+  .panel { background: #fff; border-radius: 24px; padding: 20px; border: 1px solid #f3f4f6; box-shadow: 0 10px 15px -3px rgba(0,0,0,.1); margin-bottom: 24px; }
+  h2 { font-size: 16px; font-weight: 700; margin: 0 0 12px; }
+  label { display: block; font-size: 12px; font-weight: 600; color: #4b5563; margin-bottom: 4px; }
+  input, select { width: 100%; padding: 9px 12px; font-size: 14px; border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; color: #1f2937; }
+  input:focus, select:focus { outline: 2px solid #3b82f6; border-color: transparent; }
+  .amount { font-size: 24px; font-weight: 900; padding: 12px; background: #f9fafb; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .fields > div { margin-bottom: 12px; }
+  button.primary { width: 100%; background: #2563eb; color: #fff; border: 0; border-radius: 12px; padding: 12px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 8px; box-shadow: 0 4px 6px rgba(0,0,0,.1); }
+  button.primary:hover { background: #1d4ed8; }
+  button.primary:active { transform: scale(.97); }
+  .hist-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .link-danger { background: none; border: 0; color: #ef4444; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .link-danger:hover { text-decoration: underline; }
+  #listaGastos { max-height: 288px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+  .item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f9fafb; border: 1px solid #f3f4f6; border-radius: 16px; font-size: 12px; }
+  .item .t { font-weight: 700; font-size: 14px; margin: 0; }
+  .item .t span { color: #2563eb; }
+  .item .d { color: #6b7280; margin: 2px 0 0; }
+  .del { background: none; border: 0; color: #f87171; font-size: 18px; font-weight: 700; cursor: pointer; padding: 8px; }
+  .del:hover { color: #dc2626; }
+  .empty { color: #9ca3af; text-align: center; font-size: 12px; padding: 16px 0; }
+  .note { font-size: 11px; color: #9ca3af; text-align: center; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🏠 Contabilidad Casa</h1>
+    <p class="sub">Calculadora de gastos en pareja</p>
+  </header>
+
+  <div class="grid2">
+    <div class="card blue">
+      <p class="lbl">Te debe ella</p>
+      <p id="totalEllaTeDebe" class="val">0.00 €</p>
+    </div>
+    <div class="card rose">
+      <p class="lbl">Le debes tú</p>
+      <p id="totalLeDebes" class="val">0.00 €</p>
+    </div>
+  </div>
+
+  <div id="balanceNetoCard" class="balance emerald">
+    <p class="lbl">Balance Neto</p>
+    <p id="balanceNeto" class="val">¡Estáis a paz y a salvo!</p>
+  </div>
+
+  <div class="panel">
+    <h2>➕ Añadir Nuevo Gasto</h2>
+    <form id="expenseForm" class="fields">
+      <div>
+        <label for="concepto">Concepto</label>
+        <input type="text" id="concepto" placeholder="Ej: Supermercado, luz, cena...">
+      </div>
+      <div>
+        <label for="importe">Cantidad (€)</label>
+        <input type="number" step="0.01" id="importe" required placeholder="0.00" class="amount">
+      </div>
+      <div class="row2">
+        <div>
+          <label for="pagadoPor">¿Quién pagó?</label>
+          <select id="pagadoPor">
+            <option value="Yo">Yo</option>
+            <option value="Mi Mujer">Mi Mujer</option>
+          </select>
+        </div>
+        <div>
+          <label for="tipo">Tipo de gasto / %</label>
+          <select id="tipo">
+            <option value="50" selected>Mitad (50%)</option>
+            <option value="100">Íntegro (100% para el otro)</option>
+            <option value="0">Personal (0% - No se divide)</option>
+            <option value="10">10% para el otro</option>
+            <option value="20">20% para el otro</option>
+            <option value="30">30% para el otro</option>
+            <option value="40">40% para el otro</option>
+            <option value="60">60% para el otro</option>
+            <option value="70">70% para el otro</option>
+            <option value="80">80% para el otro</option>
+            <option value="90">90% para el otro</option>
+          </select>
+        </div>
+      </div>
+      <button type="submit" class="primary">Añadir Gasto</button>
+    </form>
+  </div>
+
+  <div class="panel">
+    <div class="hist-head">
+      <h2 style="margin:0">📋 Historial</h2>
+      <button class="link-danger" onclick="limpiarTodo()">Borrar todo</button>
+    </div>
+    <div id="listaGastos">
+      <p class="empty">No hay gastos registrados aún.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  let gastos = [];
+  let lastPagadoPor = 'Yo';
+  let lastTipo = '50';
+
+  const form = document.getElementById('expenseForm');
+  const listaGastos = document.getElementById('listaGastos');
+  const totalEllaTeDebeEl = document.getElementById('totalEllaTeDebe');
+  const totalLeDebesEl = document.getElementById('totalLeDebes');
+  const balanceNetoEl = document.getElementById('balanceNeto');
+  const balanceNetoCard = document.getElementById('balanceNetoCard');
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const concepto = document.getElementById('concepto').value.trim() || 'Gasto';
+    const importe = parseFloat(document.getElementById('importe').value);
+    const pagadoPor = document.getElementById('pagadoPor').value;
+    const tipo = document.getElementById('tipo').value;
+
+    if (isNaN(importe) || importe <= 0) return;
+
+    lastPagadoPor = pagadoPor;
+    lastTipo = tipo;
+
+    gastos.unshift({ id: Date.now(), concepto, importe, pagadoPor, tipo: parseFloat(tipo) });
+    renderizar();
+
+    form.reset();
+    document.getElementById('pagadoPor').value = lastPagadoPor;
+    document.getElementById('tipo').value = lastTipo;
+    document.getElementById('importe').focus();
+  });
+
+  function eliminarGasto(id) {
+    gastos = gastos.filter(g => g.id !== id);
+    renderizar();
+  }
+
+  function limpiarTodo() {
+    gastos = [];
+    renderizar();
+  }
+
+  function renderizar() {
+    listaGastos.innerHTML = '';
+    let totalEllaDebe = 0;
+    let totalTuDebes = 0;
+
+    if (gastos.length === 0) {
+      listaGastos.innerHTML = '<p class="empty">No hay gastos registrados aún.</p>';
+    } else {
+      gastos.forEach(g => {
+        const pct = g.tipo;
+        const descTipo = pct === 50 ? 'Mitad (50%)' : (pct === 100 ? 'Íntegro (100%)' : (pct === 0 ? 'Personal (0%)' : `${pct}% para el otro`));
+        const proporcion = pct / 100;
+
+        if (g.pagadoPor === 'Yo') {
+          totalEllaDebe += g.importe * proporcion;
+        } else {
+          totalTuDebes += g.importe * proporcion;
+        }
+
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.innerHTML = `
+          <div>
+            <p class="t">${escapeHtml(g.concepto)} - <span>${g.importe.toFixed(2)} €</span></p>
+            <p class="d">Pagó: <b>${g.pagadoPor}</b> • ${descTipo}</p>
+          </div>
+          <button class="del" onclick="eliminarGasto(${g.id})" aria-label="Eliminar">×</button>
+        `;
+        listaGastos.appendChild(div);
+      });
+    }
+
+    totalEllaTeDebeEl.textContent = totalEllaDebe.toFixed(2) + ' €';
+    totalLeDebesEl.textContent = totalTuDebes.toFixed(2) + ' €';
+
+    const balance = totalEllaDebe - totalTuDebes;
+    if (Math.abs(balance) < 0.01) {
+      balanceNetoEl.textContent = '¡Estáis a paz y a salvo!';
+      balanceNetoCard.className = 'balance emerald';
+    } else if (balance > 0) {
+      balanceNetoEl.textContent = `Te debe: ${balance.toFixed(2)} €`;
+      balanceNetoCard.className = 'balance sky';
+    } else {
+      balanceNetoEl.textContent = `Le debes: ${Math.abs(balance).toFixed(2)} €`;
+      balanceNetoCard.className = 'balance rose';
+    }
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  renderizar();
+</script>
+</body>
+</html>
